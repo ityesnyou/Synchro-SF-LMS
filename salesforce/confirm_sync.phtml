@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Confirm synchronisation</title>
+    <!-- Bootstrap - Latest compiled and minified CSS -->
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/css/bootstrap.min.css">
+    <style>
+        .sf-form-group {
+            margin-bottom: 0px;
+            margin-top: 0px
+        }
+
+        .sf-label {
+            font-weight: normal;
+        }
+
+        .sf-hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+<form class="form-horizontal" method="post" action="https://lmshub.yesnyou.com/lms/importFromSalesforce/"
+      name="syncLMS">
+    <div class="container-fluid">
+        <div class="col-md-12">
+            <div class="col-md-8"><h1>Confirm synchronisation</h1></div>
+            <?php if (0 < count($trainingsLearners)) : ?>
+                <div class="col-md-4"><input class="btn btn-primary" id="submitter" type="submit"
+                                             value="Synchronise selected"
+                                             onclick="this.disabled='disabled';this.value='Synchronising, please wait...';document.syncLMS.submit();"/>
+                </div>
+            <?php endif; ?>
+        </div>
+        <div class="col-md-12">
+            <?php if (1 > count($trainingsLearners)) : ?>
+                <p class="text-primary">Nothing to sync. No approved or LSAT trainings found in contract.</p>
+            <?php else : ?>
+                <div class="well well-sm">
+                    <p>
+                        Below is what we'll be creating in the LMS.<br/>
+                        There are a few gotchas we'd like to draw your attention to:
+                    <ul>
+                        <li>Only checked rows will be synchronized</li>
+                        <li>Only <strong>approved</strong> and <strong>LSAT</strong> trainings can be synchronised. LSAT
+                            trainings do not need to be approved.
+                        </li>
+                        <li>If the learner already exists, his or her data will <strong>not</strong> be updated</li>
+                        <li>If the learner is to be enrolled in an non-existing learning plan, a warning will be
+                            issued.<br/>
+                            In that case, <strong>any created branches and learners will remain</strong>, but all learner
+                            enrollments will be cancelled
+                        </li>
+                        <li class="text-danger">The learning plan <strong>must</strong> already exist in the LMS, it can
+                            <strong>not</strong> be created by this tool
+                        </li>
+                    </ul>
+                    </p>
+                </div>
+        </div>
+            <?php foreach ($trainingsLearners as $id => $training) : ?>
+                <?php if ($training["contract_approval"] != "Approved" && substr(
+                                $training["code"],
+                                0,
+                                -3
+                        ) != "01t200000038Zmd"
+                ) {
+                    // continue;
+                } ?>
+                <div class="col-md-12">
+                    <div class="panel panel-default">
+                        <div class="panel-body">
+                            <div>
+                        <span class="label label-default">
+                            <span class="glyphicon glyphicon-folder-open" aria-hidden="true"></span>
+                            Account</span>
+                        <span class="small">
+                            <?php foreach ($training["hierarchy"] as $key => $account) : ?>
+                                <?php echo $account["parent_account"]; ?>
+                                <?php echo $key < max(array_keys($training["hierarchy"])) ? "<strong>&raquo;</strong>" : ""; ?>
+                            <?php endforeach; ?>
+                        </span>
+                            </div>
+                            <div><span class="label label-default"><span class="glyphicon glyphicon-list-alt"
+                                                                         aria-hidden="true"></span> Contract</span><span
+                                        class="small"> <?php echo $training["contract"]; ?></span></div>
+                            <div><span class="label label-default"><span class="glyphicon glyphicon-user"
+                                                                         aria-hidden="true"></span> PM</span><span
+                                        class="small"> <?php printf(
+                                            "%s %s",
+                                            ucfirst($training["owner_firstname"]),
+                                            strtoupper($training["owner_lastname"])
+                                    ); ?></span></div>
+                            <div><span class="label label-default"><span class="glyphicon glyphicon-time"
+                                                                         aria-hidden="true"></span> Training</span><span
+                                        class="small"> <?php echo $training["name"]; ?></span></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-12">
+                    <div class="panel panel-default">
+                        <div class="panel-body">
+                            <div class="pull-left">
+                                <label class="sf-label"><input class="sf-select-all" type="checkbox"> Select/unselect
+                                    all</label>
+                            </div>
+                            <div class="pull-right">
+                                <strong><span id="sf-nb-selected">0</span></strong> learners selected
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <?php foreach ($training["learners"] as $learnerId => $learner) : ?>
+                    <?php foreach ($training["hierarchy"] as $key => $accountInfo) : ?>
+                        <input type="hidden"
+                               name="item[<?php echo $id; ?>|<?php echo $learnerId; ?>][hierarchy][<?php echo $key; ?>][name]"
+                               value="<?php echo $accountInfo["parent_account"]; ?>"/>
+                        <input type="hidden"
+                               name="item[<?php echo $id; ?>|<?php echo $learnerId; ?>][hierarchy][<?php echo $key; ?>][code]"
+                               value="<?php echo $accountInfo["parent_account_code"]; ?>"/>
+                    <?php endforeach; ?>
+                    <input type="hidden" name="item[<?php echo $id; ?>|<?php echo $learnerId; ?>][account_name]"
+                           value="<?php echo $training["account"]; ?>"/>
+                    <input type="hidden" name="item[<?php echo $id; ?>|<?php echo $learnerId; ?>][account_code]"
+                           value="<?php echo $training["account_code"]; ?>"/>
+                    <input type="hidden" name="item[<?php echo $id; ?>|<?php echo $learnerId; ?>][contract]"
+                           value="<?php echo $training["contract"]; ?>"/>
+                    <input type="hidden" name="item[<?php echo $id; ?>|<?php echo $learnerId; ?>][contract_code]"
+                           value="<?php echo $training["contract_code"]; ?>"/>
+                    <?php
+                    $ui_lang = strtolower($learner->LMS_Interface_language__c);
+                    if ("" == $ui_lang) {
+                        $ui_lang = strtolower($training["training_ui_lang"]);
+                    }
+                    if ("" == $ui_lang) {
+                        $ui_lang = "french";
+                    }
+                    ?>
+                    <input type="hidden" name="item[<?php echo $id; ?>|<?php echo $learnerId; ?>][ui_lang]"
+                           value="<?php echo $ui_lang; ?>"/>
+                    <input type="hidden" name="item[<?php echo $id; ?>|<?php echo $learnerId; ?>][owner_firstname]"
+                           value="<?php echo $training["owner_firstname"]; ?>"/>
+                    <input type="hidden" name="item[<?php echo $id; ?>|<?php echo $learnerId; ?>][owner_lastname]"
+                           value="<?php echo $training["owner_lastname"]; ?>"/>
+                    <input type="hidden" name="item[<?php echo $id; ?>|<?php echo $learnerId; ?>][owner_email]"
+                           value="<?php echo $training["owner_email"]; ?>"/>
+                    <input type="hidden" name="item[<?php echo $id; ?>|<?php echo $learnerId; ?>][owner_phone]"
+                           value="<?php echo $training["owner_phone"]; ?>"/>
+                    <input type="hidden" name="item[<?php echo $id; ?>|<?php echo $learnerId; ?>][owner_cell]"
+                           value="<?php echo $training["owner_cell"]; ?>"/>
+                    <input type="hidden" name="item[<?php echo $id; ?>|<?php echo $learnerId; ?>][owner_photo_url]"
+                           value="<?php echo $training["owner_photo_url"]; ?>"/>
+                    <input type="hidden" name="item[<?php echo $id; ?>|<?php echo $learnerId; ?>][owner_active]"
+                           value="<?php echo $training["owner_active"]; ?>"/>
+                    <input type="hidden" name="item[<?php echo $id; ?>|<?php echo $learnerId; ?>][owner_street]"
+                           value="<?php echo $training["owner_street"]; ?>"/>
+                    <input type="hidden" name="item[<?php echo $id; ?>|<?php echo $learnerId; ?>][owner_zipcode]"
+                           value="<?php echo $training["owner_zipcode"]; ?>"/>
+                    <input type="hidden" name="item[<?php echo $id; ?>|<?php echo $learnerId; ?>][owner_city]"
+                           value="<?php echo $training["owner_city"]; ?>"/>
+                    <input type="hidden" name="item[<?php echo $id; ?>|<?php echo $learnerId; ?>][owner_country]"
+                           value="<?php echo $training["owner_country"]; ?>"/>
+                    <input type="hidden" name="item[<?php echo $id; ?>|<?php echo $learnerId; ?>][owner_department]"
+                           value="<?php echo $training["owner_department"]; ?>"/>
+                    <input type="hidden" name="item[<?php echo $id; ?>|<?php echo $learnerId; ?>][owner_division]"
+                           value="<?php echo $training["owner_division"]; ?>"/>
+                    <input type="hidden" name="item[<?php echo $id; ?>|<?php echo $learnerId; ?>][training_name]"
+                           value="<?php echo $training["name"]; ?>"/>
+                    <input type="hidden" name="item[<?php echo $id; ?>|<?php echo $learnerId; ?>][training_code]"
+                           value="<?php echo $training["code"]; ?>"/>
+                    <input type="hidden" name="item[<?php echo $id; ?>|<?php echo $learnerId; ?>][level]"
+                           value="<?php echo $learner->Level__c; ?>"/>
+                    <input type="hidden" name="item[<?php echo $id; ?>|<?php echo $learnerId; ?>][learner_type]"
+                           value="<?php echo $learner->Learner_Type__c; ?>"/>
+                    <input type="hidden" name="item[<?php echo $id; ?>|<?php echo $learnerId; ?>][salutation]"
+                           value="<?php echo $learner->Salutation__c; ?>"/>
+                    <input type="hidden" name="item[<?php echo $id; ?>|<?php echo $learnerId; ?>][first_name]"
+                           id="<?php echo $learnerId; ?>-first-name" value="<?php echo $learner->First_Name__c; ?>"/>
+                    <input type="hidden" name="item[<?php echo $id; ?>|<?php echo $learnerId; ?>][last_name]"
+                           id="<?php echo $learnerId; ?>-last-name" value="<?php echo $learner->Name; ?>"/>
+                    <input type="hidden" name="item[<?php echo $id; ?>|<?php echo $learnerId; ?>][email]"
+                           value="<?php echo $learner->Email__c; ?>"/>
+                    <input type="hidden" name="item[<?php echo $id; ?>|<?php echo $learnerId; ?>][email2]"
+                           value="<?php echo $learner->Email_address_2__c; ?>"/>
+                    <input type="hidden" name="item[<?php echo $id; ?>|<?php echo $learnerId; ?>][birth_date]"
+                           value="<?php echo $learner->Date_of_birth__c; ?>"/>
+                    <input type="hidden" name="item[<?php echo $id; ?>|<?php echo $learnerId; ?>][phone]"
+                           value="<?php echo $learner->Phone__c; ?>"/>
+                    <input type="hidden" name="item[<?php echo $id; ?>|<?php echo $learnerId; ?>][cell]"
+                           value="<?php echo $learner->Mobile_phone__c; ?>"/>
+                    <input type="hidden" name="item[<?php echo $id; ?>|<?php echo $learnerId; ?>][login]"
+                           id="<?php echo $learnerId; ?>-login"
+                           value="<?php echo "" == trim($learner->Login__c) ? $learner->Email__c : trim(
+                                   $learner->Login__c
+                           ); ?>"/>
+                    <input type="hidden" name="item[<?php echo $id; ?>|<?php echo $learnerId; ?>][job_title]"
+                           value="<?php echo $learner->Job_Title__c; ?>"/>
+                    <input type="hidden" name="item[<?php echo $id; ?>|<?php echo $learnerId; ?>][center]"
+                           value="<?php echo $learner->Center__c; ?>"/>
+                    <input type="hidden" name="item[<?php echo $id; ?>|<?php echo $learnerId; ?>][rec_level]"
+                           value="<?php echo $learner->Recommended_Level__c; ?>"/>
+                    <div class="col-md-4">
+                        <div class="panel panel-default">
+                            <div class="panel-heading">
+                                <input class="sf-checkbox" type="checkbox" name="items[]"
+                                       value="<?php echo $id . "|" . $learnerId; ?>"/> <span
+                                        data-id="<?php echo $learnerId; ?>" class="panel-title sf-panel-toggle">
+                         <?php printf(
+                                 " %s %s",
+                                 ucfirst($learner->First_Name__c),
+                                 strtoupper($learner->Name)
+                         ); ?><span class="pull-right glyphicon glyphicon-chevron-down"
+                                    aria-hidden="true"></span></span>
+                            </div>
+                            <div class="panel-body sf-hidden" id="panel-body-<?php echo $learnerId; ?>">
+                                <div class="form-group form-group-sm sf-form-group">
+                                    <label class="col-md-4 control-label">Job title</label>
+
+                                    <div class="col-md-8"><p
+                                                class="form-control-static"><?php echo $learner->Job_Title__c; ?></p>
+                                    </div>
+                                </div>
+                                <div class="form-group form-group-sm sf-form-group">
+                                    <label class="col-md-4 control-label">Gender</label>
+
+                                    <div class="col-md-8"><p
+                                                class="form-control-static"><?php echo $learner->Salutation__c; ?></p>
+                                    </div>
+                                </div>
+                                <div class="form-group form-group-sm sf-form-group">
+                                    <label class="col-md-4 control-label">Email</label>
+
+                                    <div class="col-md-8"><p
+                                                class="form-control-static"><?php echo $learner->Email__c; ?></p>
+                                    </div>
+                                </div>
+                                <div class="form-group form-group-sm sf-form-group">
+                                    <label class="col-md-4 control-label">Email 2</label>
+
+                                    <div class="col-md-8"><p
+                                                class="form-control-static"><?php echo $learner->Email_address_2__c; ?></p>
+                                    </div>
+                                </div>
+                                <div class="form-group form-group-sm sf-form-group">
+                                    <label class="col-md-4 control-label">Phone</label>
+
+                                    <div class="col-md-8"><p
+                                                class="form-control-static"><?php echo $learner->Mobile_phone__c; ?></p>
+                                    </div>
+                                </div>
+                                <div class="form-group form-group-sm sf-form-group">
+                                    <label class="col-md-4 control-label">Other phone</label>
+
+                                    <div class="col-md-8"><p
+                                                class="form-control-static"><?php echo $learner->Phone__c; ?></p>
+                                    </div>
+                                </div>
+                                <div class="form-group form-group-sm sf-form-group">
+                                    <label class="col-md-4 control-label">Type</label>
+
+                                    <div class="col-md-8"><p
+                                                class="form-control-static"><?php echo $learner->Learner_Type__c; ?></p>
+                                    </div>
+                                </div>
+                                <div class="form-group form-group-sm sf-form-group">
+                                    <label class="col-md-4 control-label">Center</label>
+
+                                    <div class="col-md-8"><p
+                                                class="form-control-static"><?php echo $learner->Center__c; ?></p>
+                                    </div>
+                                </div>
+                                <div class="form-group form-group-sm sf-form-group">
+                                    <label class="col-md-4 control-label">Acquired level</label>
+
+                                    <div class="col-md-8"><p
+                                                class="form-control-static"><?php echo $learner->Level__c; ?></p>
+                                    </div>
+                                </div>
+                                <div class="form-group form-group-sm sf-form-group">
+                                    <label class="col-md-4 control-label">Recommended level</label>
+
+                                    <div class="col-md-8"><p
+                                                class="form-control-static"><?php echo $learner->Recommended_Level__c; ?></p>
+                                    </div>
+                                </div>
+                                <div class="form-group form-group-sm sf-form-group">
+                                    <label class="col-md-4 control-label">Date of birth</label>
+
+                                    <div class="col-md-8"><p
+                                                class="form-control-static"><?php echo $learner->Date_of_birth__c; ?></p>
+                                    </div>
+                                </div>
+                                <div class="form-group form-group-sm sf-form-group">
+                                    <label class="col-md-4 control-label">Login</label>
+
+                                    <div class="col-md-8"><p class="form-control-static"><span
+                                                    id="<?php echo $learnerId; ?>-login-display"><?php echo "" == trim(
+                                                        $learner->Login__c
+                                                ) ? $learner->Email__c : trim($learner->Login__c); ?></span>
+                                        </p></div>
+                                </div>
+                                <div class="form-group form-group-sm sf-form-group">
+                                    <label class="col-md-4 control-label">LMS Interface language</label>
+
+                                    <div class="col-md-8"><p
+                                                class="form-control-static"><?php echo $ui_lang; ?></p>
+                                    </div>
+                                </div>
+                                <div class="form-group form-group-sm sf-form-group">
+                                    <div class="col-sm-offset-4 col-sm-8">
+                                        <button type="button" class="btn btn-default btn-sm sf-btn-login"
+                                                id="<?php echo $learnerId; ?>">Use first &amp; last name as login
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                <?php endforeach; ?>
+            <?php endforeach; ?>
+        <?php endif; ?>
+    </div>
+</form>
+<!-- jQuery -->
+<script src="https://code.jquery.com/jquery-2.1.4.min.js"></script>
+<!-- Bootstrap - Latest compiled and minified JavaScript -->
+<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/js/bootstrap.min.js"></script>
+<script type="application/javascript" language="JavaScript">
+    $(document).ready(function () {
+        $(".sf-select-all").change(function () {
+            if (this.checked) {
+                $(".sf-checkbox").prop("checked", true);
+            } else {
+                $(".sf-checkbox").prop("checked", false);
+            }
+            $("#sf-nb-selected").text($(".sf-checkbox:checked").length);
+        });
+        $(".sf-checkbox").change(function () {
+            $("#sf-nb-selected").text($(".sf-checkbox:checked").length);
+        });
+        $(".sf-panel-toggle").hover(function () {
+            $(this).css({"cursor": "pointer"});
+        })
+        $(".sf-panel-toggle").click(function (e) {
+            $("#panel-body-" + $(this).attr("data-id")).toggle();
+            if ($("#panel-body-" + $(this).attr("data-id")).css("display") == "block") {
+                $(this).children(".glyphicon").removeClass("glyphicon-chevron-down").addClass("glyphicon-chevron-up");
+            } else {
+                $(this).children(".glyphicon").removeClass("glyphicon-chevron-up").addClass("glyphicon-chevron-down");
+            }
+        });
+        $(".sf-btn-login").click(function () {
+            var newLogin = ($("#" + $(this).attr("id") + "-first-name").val() + "." + $("#" + $(this).attr("id") + "-last-name").val()).toLowerCase();
+            $("#" + $(this).attr("id") + "-login-display").text(newLogin);
+            $("#" + $(this).attr("id") + "-login").val(newLogin);
+        });
+    });
+</script>
+</body>
+</html>

@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html>
+<head lang="en">
+    <meta charset="UTF-8">
+    <title>Synchronisation result</title>
+    <!-- Bootstrap - Latest compiled and minified CSS -->
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/css/bootstrap.min.css">
+    <style type="text/css">
+        /* Override default bootstrap breadcrumb design - got this from http://bootstrapdesigntools.com/tools/bootstrap-breadcrumb-designer/ */
+        .breadcrumb {background: rgba(255, 255, 255, 1); border: 0px solid rgba(255, 255, 255, 1); border-radius: 0px; display: block;}
+        .breadcrumb li {font-size: 14px;}
+        .breadcrumb a {color: rgba(66, 139, 202, 1);}
+        .breadcrumb a:hover {color: rgba(42, 100, 150, 1);}
+        .breadcrumb>.active {color: rgba(153, 153, 153, 1);}
+        .breadcrumb>li+li:before {color: rgba(145, 145, 145, 1); content: "\276D\00a0";}
+        /* Override bootstrap's default table font size */
+        .table {font-size: 12px;}
+    </style>
+</head>
+<body class="hasMotif Custom95Tab detailPage">
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-md-12"><h1>Synchronisation result</h1></div>
+    </div>
+    <div class="well well-sm">
+        <p>Below is what we've done in the LMS.<br />
+        <span class="danger"><strong>If this is not what you expected</strong>, please contact your LMS administrator.</span></p>
+    </div>
+    <div class="row">
+        <div class="col-md-12">
+            <div class="panel panel-default">
+                <div class="panel-heading">
+                    <h3 class="panel-title">Branches we created</h3>
+                </div>
+                <div class="panel-body">
+                    <?php if (1 > count($lms->branchCreations)) : ?>
+                    <p>No branches were created, all needed branches existed already in the LMS.</p>
+                    <?php else : ?>
+                    <ol class="breadcrumb">
+                        <li><?php echo $lms->branchCreations[0]["parent_branch"]->translation->english; ?></li>
+                        <?php foreach ($lms->branchCreations as $branch) : ?>
+                        <li><?php echo $branch["translation[english]"]; ?></li>
+                        <?php endforeach; ?>
+                    </ol>
+                    <?php endif; ?>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-md-12">
+            <div class="panel panel-default">
+                <div class="panel-heading">
+                    <h3 class="panel-title">Learners we created</h3>
+                </div>
+                <?php if (1 > count($lms->userCreations)) : ?>
+                <div class="panel-body">
+                    <p>No learners were created, they all existed already in the LMS.</p>
+                </div>
+                <?php else : ?>
+                <table class="table">
+                    <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Gender</th>
+                        <th>First name</th>
+                        <th>Last name</th>
+                        <th>Login</th>
+                        <th>Password</th>
+                        <th>Email</th>
+                        <th>Role</th>
+                        <th>Type</th>
+                        <th>Branch</th>
+                        <th>Phone</th>
+                        <th>Other Phone</th>
+                        <th>Time zone</th>
+                        <th>LMS Language</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <?php $i = 0; foreach ($lms->userCreations as $userId => $data) : ?>
+                    <tr>
+                        <th scope="row"><?php echo $userId; ?></th>
+                        <td><?php echo $data["salutation"]; ?></td>
+                        <td><?php echo $data["firstname"]; ?></td>
+                        <td><?php echo $data["lastname"]; ?></td>
+                        <td><?php echo $data["userid"]; ?></td>
+                        <td><?php echo $data["password"]; ?></td>
+                        <td><?php echo $data["email"]; ?></td>
+                        <td><?php echo $data["role"]; ?></td>
+                        <td><?php echo $data["learner_type"]; ?></td>
+                        <td><?php echo $data["branchname"]; ?></td>
+                        <td><?php echo $data["cell"]; ?></td>
+                        <td><?php echo $data["phone"]; ?></td>
+                        <td><?php echo $data["timezone"]; ?></td>
+                        <td><?php echo $data["ui_lang"]; ?></td>
+                    </tr>
+                    <?php endforeach; ?>
+                    </tbody>
+                </table>
+                <?php endif; ?>
+            </div>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-md-12">
+            <div class="panel <?php echo $lms->rollback ? "panel-danger" : "panel-default";?>"<?php echo $lms->rollback ? ' title="These were rolled back"' : ""; ?>>
+                <div class="panel-heading">
+                    <h3 class="panel-title">We performed these subscriptions</h3>
+                </div>
+                <?php if ($lms->rollback || 1 > count($lms->enrollments)) : ?>
+                <div class="panel-body">
+                    <?php if (1 > count($lms->enrollments)) : ?>
+                    <p>No learning plan subscriptions to be made</p>
+                    <?php endif; ?>
+                    <?php if ($lms->rollback) : ?>
+                    <span class="danger">All subscriptions were rolled back!</span>
+                    <?php endif; ?>
+                </div>
+                <?php else : ?>
+                <table class="table">
+                    <tr>
+                        <th>Username</th>
+                        <th>First name</th>
+                        <th>Last name</th>
+                        <th>Email</th>
+                        <th>Learning plan</th>
+                        <th>Was already enrolled</th>
+                    </tr>
+                    <?php $i = 0; foreach ($lms->enrollments as $data) : $inError = in_array($data["lp_code"], $lms->lpWithError); ?>
+                    <tr>
+                        <th role="row"><?php echo $data["user"]["userid"]; ?></th>
+                        <td><?php echo $data["user"]["firstname"]; ?></td>
+                        <td><?php echo $data["user"]["lastname"]; ?></td>
+                        <td><?php echo $data["user"]["email"]; ?></td>
+                        <td><?php echo $inError ? '<span class="importantWarning">' : ''; ?><?php echo $data["lp_name"]; ?><?php echo $inError ? '</span>' : ''; ?></td>
+                        <td><?php echo false == empty($data["already_enrolled"])  ? "YES" : "NO"; ?></td>
+                    </tr>
+                    <?php endforeach; ?>
+                </table>
+                <?php endif; ?>
+            </div>
+        </div>
+    </div>
+</div>
+<!-- jQuery -->
+<script src="https://code.jquery.com/jquery-2.1.4.min.js"></script>
+<!-- Bootstrap - Latest compiled and minified JavaScript -->
+<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.5/js/bootstrap.min.js"></script>
+</body>
+</html>
