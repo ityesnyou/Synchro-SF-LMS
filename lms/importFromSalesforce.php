@@ -161,7 +161,7 @@ if (!isset($_POST["items"])) {
 }
 
 // First off, find the PM branch, accounts, contracts and users
-foreach ($_POST["items"] as &$item) {
+foreach (array_keys($_POST["items"]) as &$item) {
     // We'll be handling timeout
     $start = time();
 
