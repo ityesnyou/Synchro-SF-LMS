@@ -97,12 +97,12 @@ Array
 */
 $lms = new LmsActions(true, true);
 
+$_POST = getRealPOST();
+
 if (!isset($_POST["items"])) {
     include __DIR__ . DIRECTORY_SEPARATOR . 'result_sync.phtml';
     exit;
 }
-
-$_POST = getRealPOST();
 
 // First off, find the PM branch, accounts, contracts and users
 foreach ($_POST["items"] as &$item) {
